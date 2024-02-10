@@ -1,57 +1,116 @@
-import pandas as pd
+
 import matplotlib.pyplot as plt
+import numpy as np
+from scipy.signal import find_peaks
+from scipy.optimize import minimize_scalar
 
-# Charger les données depuis le fichier CSV
-#data1 = pd.read_csv('calibration', sep = ' ', header = None)
+def plot_spectrometer_data(file_path_gin, file_path_vide, label_gin, label_vide):
+    # Load data using NumPy
+    data_gin = np.loadtxt(file_path_gin)
+    data_vide = np.loadtxt(file_path_vide)
 
-# Extraire les colonnes x et y
+    # Extract y and x points from the loaded data for gin and vide
+    y_points_gin = data_gin[0, :]
+    x_points_gin = data_gin[1, :]
 
-# Tracer le graphique
-#plt.plot(x, y, label='Données')
+    y_points_vide = data_vide[0, :]
+    x_points_vide = data_vide[1, :]
 
-# Ajouter des titres et une légende
-#plt.title('Graphique à partir de données CSV')
-#plt.xlabel('Axe X')
-#plt.ylabel('Axe Y')
-#plt.legend()
+    # Normalize y points by dividing by the max value for gin and vide
+    y_points_normalized_gin = y_points_gin / np.max(y_points_gin)
+    y_points_normalized_vide = y_points_vide / np.max(y_points_vide)
 
-# Afficher le graphique
-#plt.show()
+    # Find peaks in the spectrum of vide
+    peaks_vide, _ = find_peaks(y_points_normalized_vide, height=0.1)
 
-# Ouvrir le fichier en mode lecture
-with open('spectre_99%', 'r') as fichier:
-    # Lire toutes les lignes du fichier et les stocker dans une liste
-    lignes = fichier.readlines()
-
-# Traiter la première ligne pour obtenir la dernière valeur
-premiere_ligne_elements = lignes[0].strip().split()
-derniere_valeur_premiere_ligne = float(premiere_ligne_elements[-1])
-print("Dernière valeur de la première ligne :", derniere_valeur_premiere_ligne)
-
-# Traiter la deuxième ligne pour obtenir la première valeur
-deuxieme_ligne_elements = lignes[1].strip().split()
-premiere_valeur_deuxieme_ligne = float(deuxieme_ligne_elements[0])
-print("Première valeur de la deuxième ligne :", premiere_valeur_deuxieme_ligne)
-
-# Imprimer la première ligne si la dernière valeur est inférieure à la première valeur de la deuxième ligne
-if derniere_valeur_premiere_ligne < premiere_valeur_deuxieme_ligne:
-    print("Première ligne :", premiere_ligne_elements)
-
-# Imprimer la deuxième ligne si la première valeur est inférieure à la dernière valeur de la première ligne
-if premiere_valeur_deuxieme_ligne > derniere_valeur_premiere_ligne:
-    print("Deuxième ligne :", deuxieme_ligne_elements)
+    # Subtract the spectrum of vide from the spectrum of gin to remove noise
+    y_points_cleaned = y_points_gin - y_points_vide
     
-# Tracer le graphique
-plt.plot(deuxieme_ligne_elements, premiere_ligne_elements, label='Données')
+    y_points_cleaned_normalised = y_points_cleaned/np.max(y_points_cleaned)
 
-# Ajouter des titres et une légende
-plt.title('Spectre de calibration du mercure')
-plt.xlabel('Intensité')
-plt.ylabel('Longueur onde (nm)')
+    # Plot the cleaned data with smaller marker size and add a label
+    plt.plot(x_points_gin, y_points_cleaned_normalised, label=label_gin + ' - ' + label_vide, marker='', linestyle='-', markersize=3)
+
+    # Plot the baseline as a horizontal line at y=0
+    plt.axhline(y=0, color='gray', linestyle='--', label='Baseline')
+
+# Provide the paths to your .txt files for gin and vide
+file_path_gin = 'spectre_gin'
+file_path_vide = 'spectre_vide'
+
+# Call the function to plot the cleaned data
+plot_spectrometer_data(file_path_gin, file_path_vide, 'Spectre Gin', 'Spectre Vide')
+
+# Customize the plot
+plt.title('Spectre de Raman: Gin sans bruit')
+plt.xlabel(r'cm$^{-1}$')
+plt.ylabel('Intensité normalisée')
 plt.legend()
-
-# Afficher le graphique
 plt.show()
 
+from scipy.optimize import minimize_scalar
 
+#def als_baseline(y, lam, p, niter=10):
+#    L = len(y)
+#    D = np.diff(np.eye(L), 2)
+#    w = np.ones(L)
+#    for i in range(niter):
+#        W = np.diag(w)
+#        Z = np.diff(np.eye(L), 2)
+#        Z = Z[:, 1:-1]  # Adjusting the size of Z to match the size of y
+#        Z = Z.T @ Z
+#        C = np.linalg.cholesky(Z + lam * W)
+#        ZS = np.linalg.solve(C, Z.T)
+#        ZSZ = ZS @ ZS.T
+#        y_hat = ZS @ np.linalg.solve(C, y)
+#        w = p * (y - y_hat) ** 2
+#        w = 1 / (1 + np.exp(-(w - np.percentile(w, 25)) / (np.percentile(w, 75) - np.percentile(w, 25))))
+#    return y_hat
 
+#def plot_spectrometer_data(file_path_gin, file_path_vide, label_gin, label_vide):
+    # Load data using NumPy
+#    data_gin = np.loadtxt(file_path_gin)
+#    data_vide = np.loadtxt(file_path_vide)#
+
+    # Extract y and x points from the loaded data for gin and vide
+#    y_points_gin = data_gin[0, :]
+#    x_points_gin = data_gin[1, :]
+
+#    y_points_vide = data_vide[0, :]
+#    x_points_vide = data_vide[1, :]
+
+    # Normalize y points by dividing by the max value for gin and vide
+#    y_points_normalized_gin = y_points_gin / np.max(y_points_gin)
+#    y_points_normalized_vide = y_points_vide / np.max(y_points_vide)
+
+    # Subtract the spectrum of vide from the spectrum of gin to remove noise
+#    y_points_cleaned = y_points_gin - y_points_vide
+#    y_points_cleaned_normalised = y_points_cleaned / np.max(y_points_cleaned)
+
+    # Perform baseline correction using the asymmetric least squares algorithm
+#    lam = 1e6
+#    p = 0.1
+#    baseline = als_baseline(y_points_cleaned_normalised, lam, p)
+
+    # Subtract the baseline from the cleaned spectrum
+#    y_points_baseline_subtracted = y_points_cleaned_normalised - baseline
+
+    # Plot the cleaned data with smaller marker size and add a label
+#    plt.plot(x_points_gin, y_points_baseline_subtracted, label=label_gin + ' - ' + label_vide, marker='', linestyle='-', markersize=3)
+
+    # Plot the baseline as a horizontal line at y=0
+#    plt.axhline(y=0, color='gray', linestyle='--', label='Baseline')
+
+# Provide the paths to your .txt files for gin and vide
+#file_path_gin = 'spectre_99%'
+#file_path_vide = 'spectre_vide'
+
+# Call the function to plot the cleaned data
+#plot_spectrometer_data(file_path_gin, file_path_vide, 'Spectre Gin', 'Spectre Vide')
+
+# Customize the plot
+#plt.title("Spectre de Raman de l'éthanol 99% avec baseline")
+#plt.xlabel(r'cm$^{-1}$')
+#plt.ylabel('Intensité normalisée')
+#plt.legend()
+#plt.show()
